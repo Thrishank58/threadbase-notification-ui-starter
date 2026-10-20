@@ -1,33 +1,69 @@
+import { useState, useRef, useEffect } from "react";
 import { useNotifications } from "../context/NotificationContext.jsx";
-
-// TODO Task 2: Add unread badge
-// TODO Task 3: Add click-outside dropdown
-//
-// Steps:
-// 1. Read `unreadCount` from useNotifications().state
-// 2. Add a useState for `open` (boolean)
-// 3. Add a useRef on the outer container div
-// 4. Render the badge ONLY when unreadCount > 0 (conditional render, not CSS hide)
-//    Cap at 99+: {unreadCount > 99 ? "99+" : unreadCount}
-//    Add aria-label to the button: `Notifications, ${unreadCount} unread`
-// 5. Add useEffect that runs when `open` is true:
-//    - add document mousedown listener
-//    - close when !containerRef.current.contains(e.target)
-//    - return cleanup: remove the listener
-// 6. When open, render <NotificationDropdown onClose={() => setOpen(false)} />
+import NotificationDropdown from "./NotificationDropdown.jsx";
 
 export default function NotificationBell() {
-  // TODO: implement badge and click-outside dropdown
+  const { state } = useNotifications();
+  const unreadCount = state?.unreadCount ?? 0;
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleMouseDown(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, [open]);
+
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={containerRef} style={{ position: "relative", display: "inline-block" }}>
       <button
-        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.3rem", color: "#fff" }}
-        aria-label="Notifications"
+        onClick={() => setOpen((prev) => !prev)}
+        style={{
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "1.3rem",
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "0.25rem",
+        }}
+        aria-label={`Notifications, ${unreadCount} unread`}
       >
         🔔
       </button>
-      {/* badge goes here */}
-      {/* dropdown goes here */}
+
+      {unreadCount > 0 && (
+        <span
+          style={{
+            position: "absolute",
+            top: "-2px",
+            right: "-4px",
+            backgroundColor: "#ef4444",
+            color: "#ffffff",
+            borderRadius: "9999px",
+            fontSize: "0.7rem",
+            fontWeight: "bold",
+            padding: "2px 6px",
+            lineHeight: 1,
+            pointerEvents: "none",
+          }}
+        >
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
+
+      {open && <NotificationDropdown onClose={() => setOpen(false)} />}
     </div>
   );
 }
